@@ -446,11 +446,35 @@ function updateProp(
     }
   }
   const binding = def.bindings[bindingIdx];
+  binding.subscriptions = binding.subscriptions || new Map();
+
+  const subscription = binding.subscriptions.get(providerData.instance);
+  if (subscription) {
+    subscription.unsubscribe();
+    binding.subscriptions.delete(providerData.instance);
+  }
+
   const propName = binding.name !;
   // Note: This is still safe with Closure Compiler as
   // the user passed in the property name as an object has to `providerDef`,
   // so Closure Compiler will have renamed the property correctly already.
-  providerData.instance[propName] = value;
+  function doAssign(v: any) {
+    const prop = providerData.instance[propName];
+    // is the property an Observer?
+    if (prop && (typeof(prop.next) === 'function')) {
+      prop.next(v);
+    } else {
+      providerData.instance[propName] = v;
+    }
+  }
+
+  // is the property an Observable?
+  if (value && (typeof(value.subscribe) === 'function')) {
+    const subscription = value.subscribe(doAssign)
+    binding.subscriptions.set(providerData.instance, subscription);
+  } else {
+    doAssign(value);
+  }
   if (def.flags & NodeFlags.OnChanges) {
     changes = changes || {};
     const oldValue = WrappedValue.unwrap(view.oldValues[def.bindingIndex + bindingIdx]);

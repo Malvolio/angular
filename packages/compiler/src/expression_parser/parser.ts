@@ -121,7 +121,9 @@ export class Parser {
                       input, location, tokens, sourceToLex.length, false, this.errors,
                       split.offsets[i] + (expressionText.length - sourceToLex.length))
                       .parseChain();
-      expressions.push(ast);
+      const wrappedAst = (ast instanceof BindingPipe && ast.name === 'async')? ast :
+        new BindingPipe(ast.span, ast, 'async', []);
+      expressions.push(wrappedAst);
     }
 
     return new ASTWithSource(

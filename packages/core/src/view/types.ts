@@ -16,7 +16,7 @@ import {TemplateRef} from '../linker/template_ref';
 import {ViewContainerRef} from '../linker/view_container_ref';
 import {Renderer2, RendererFactory2, RendererType2} from '../render/api';
 import {Sanitizer, SecurityContext} from '../sanitization/security';
-
+import {Subscription} from 'rxjs';
 
 
 // -------------------------------------
@@ -209,6 +209,7 @@ export interface BindingDef {
   nonMinifiedName: string|null;
   securityContext: SecurityContext|null;
   suffix: string|null;
+  subscriptions?: Map<any, Subscription>;
 }
 
 export const enum BindingFlags {

@@ -37,8 +37,15 @@ class PromiseStrategy implements SubscriptionStrategy {
   onDestroy(subscription: Promise<any>): void {}
 }
 
+class ScalarStrategy extends PromiseStrategy {
+  createSubscription(v: any, updateLatestValue: (v: any) => any): Promise<any> {
+    return super.createSubscription(Promise.resolve(v), updateLatestValue);
+  }
+}
+
 const _promiseStrategy = new PromiseStrategy();
 const _observableStrategy = new ObservableStrategy();
+const _scalarStrategy = new ScalarStrategy();
 
 /**
  * @ngModule CommonModule
@@ -126,7 +133,7 @@ export class AsyncPipe implements OnDestroy, PipeTransform {
       return _observableStrategy;
     }
 
-    throw invalidPipeArgumentError(AsyncPipe, obj);
+    return _scalarStrategy;
   }
 
   private _dispose(): void {

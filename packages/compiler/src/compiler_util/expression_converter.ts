@@ -103,12 +103,24 @@ export function convertActionBinding(
     const lastStatement = actionStmts[lastIndex];
     const returnExpr = convertStmtIntoExpression(lastStatement);
     if (returnExpr) {
+      preventDefaultVar = createPreventDefaultVar(bindingId);
+      const returnValue = o.variable('rv');
       // Note: We need to cast the result of the method call to dynamic,
       // as it might be a void method!
-      preventDefaultVar = createPreventDefaultVar(bindingId);
-      actionStmts[lastIndex] =
-          preventDefaultVar.set(returnExpr.cast(o.DYNAMIC_TYPE).notIdentical(o.literal(false)))
-              .toDeclStmt(null, [o.StmtModifier.Final]);
+      actionStmts[lastIndex] = returnValue.set(returnExpr.cast(o.DYNAMIC_TYPE))
+        .toDeclStmt(null, [o.StmtModifier.Final]);
+      // if the expression resolves to a Subject, invoke next()
+      actionStmts[lastIndex+1] =
+        preventDefaultVar.set(
+          returnValue.and(o.typeofExpr(returnValue.prop('next'))
+                          .identical(o.literal('function')))
+            .conditional(
+              returnValue.callMethod('next',
+                                     [o.variable('$event')])
+                .cast(o.DYNAMIC_TYPE),  // IS a void method!
+              returnValue)
+            .notIdentical(o.literal(false)))
+        .toDeclStmt(null, [o.StmtModifier.Final]);
     }
   }
   return new ConvertActionBindingResult(actionStmts, preventDefaultVar);
