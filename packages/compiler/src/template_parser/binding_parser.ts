@@ -395,10 +395,12 @@ export class BindingParser {
       collector.pipes.forEach((ast, pipeName) => {
         const pipeMeta = this.pipesByName !.get(pipeName);
         if (!pipeMeta) {
-          this._reportError(
+          if (pipeName !== 'async') {
+            this._reportError(
               `The pipe '${pipeName}' could not be found`,
               new ParseSourceSpan(
-                  sourceSpan.start.moveBy(ast.span.start), sourceSpan.start.moveBy(ast.span.end)));
+                sourceSpan.start.moveBy(ast.span.start), sourceSpan.start.moveBy(ast.span.end)));
+          }
         } else {
           this._usedPipes.set(pipeName, pipeMeta);
         }
