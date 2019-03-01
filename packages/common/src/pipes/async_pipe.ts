@@ -39,6 +39,7 @@ class PromiseStrategy implements SubscriptionStrategy {
 
 class ScalarStrategy extends PromiseStrategy {
   createSubscription(v: any, updateLatestValue: (v: any) => any): Promise<any> {
+    updateLatestValue(v);
     return super.createSubscription(Promise.resolve(v), updateLatestValue);
   }
 }
