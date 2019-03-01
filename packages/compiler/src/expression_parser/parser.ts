@@ -50,7 +50,7 @@ export class Parser {
       input: string, location: any,
       interpolationConfig: InterpolationConfig = DEFAULT_INTERPOLATION_CONFIG): ASTWithSource {
     const ast = this._parseBindingAst(input, location, interpolationConfig);
-    return new ASTWithSource(ast, input, location, this.errors);
+    return new ASTWithSource(wrapAstWithAsync(ast), input, location, this.errors);
   }
 
   parseSimpleBinding(
@@ -120,10 +120,8 @@ export class Parser {
       const ast = new _ParseAST(
                       input, location, tokens, sourceToLex.length, false, this.errors,
                       split.offsets[i] + (expressionText.length - sourceToLex.length))
-                      .parseChain();
-      const wrappedAst = (ast instanceof BindingPipe && ast.name === 'async')? ast :
-        new BindingPipe(ast.span, ast, 'async', []);
-      expressions.push(wrappedAst);
+                      .parseInterpolation();
+      expressions.push(ast);
     }
 
     return new ASTWithSource(
@@ -220,6 +218,13 @@ export class Parser {
 
     return errLocation.length;
   }
+}
+
+
+function wrapAstWithAsync(ast: AST) {
+  return (ast instanceof BindingPipe && ast.name === 'async')?
+    ast :
+    new BindingPipe(ast.span, ast, 'async', []);
 }
 
 export class _ParseAST {
@@ -323,6 +328,11 @@ export class _ParseAST {
     return new Chain(this.span(start), exprs);
   }
 
+  parseInterpolation(): AST {
+    const ast = this.parseChain();
+    return wrapAstWithAsync(ast);
+  }
+  
   parsePipe(): AST {
     let result = this.parseExpression();
     if (this.optionalOperator('|')) {
@@ -718,7 +728,7 @@ export class _ParseAST {
         const start = this.inputIndex;
         const ast = this.parsePipe();
         const source = this.input.substring(start - this.offset, this.inputIndex - this.offset);
-        expression = new ASTWithSource(ast, source, this.location, this.errors);
+        expression = new ASTWithSource(wrapAstWithAsync(ast), source, this.location, this.errors);
       }
 
       bindings.push(new TemplateBinding(this.span(start), key, isVar, name, expression));
