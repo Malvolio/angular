@@ -104,23 +104,28 @@ export function convertActionBinding(
     const returnExpr = convertStmtIntoExpression(lastStatement);
     if (returnExpr) {
       preventDefaultVar = createPreventDefaultVar(bindingId);
-      const returnValue = o.variable('rv');
+      const finalValue = createFinalValueVar(bindingId);
+      const returnValue = createReturnValVar(bindingId);
       // Note: We need to cast the result of the method call to dynamic,
       // as it might be a void method!
-      actionStmts[lastIndex] = returnValue.set(returnExpr.cast(o.DYNAMIC_TYPE))
+      actionStmts[lastIndex] = finalValue.set(returnExpr.cast(o.DYNAMIC_TYPE))
         .toDeclStmt(null, [o.StmtModifier.Final]);
       // if the expression resolves to a Subject, invoke next()
-      actionStmts[lastIndex+1] =
-        preventDefaultVar.set(
-          returnValue.and(o.typeofExpr(returnValue.prop('next'))
-                          .identical(o.literal('function')))
+      actionStmts.push(
+        returnValue.set(
+          finalValue.and(o.typeofExpr(finalValue.prop('next'))
+                         .identical(o.literal('function')))
             .conditional(
-              returnValue.callMethod('next',
-                                     [o.variable('$event')])
+              finalValue.callMethod('next',
+                                    [
+                                      // o.variable('$event')
+                                    ])
                 .cast(o.DYNAMIC_TYPE),  // IS a void method!
-              returnValue)
-            .notIdentical(o.literal(false)))
-        .toDeclStmt(null, [o.StmtModifier.Final]);
+              finalValue))
+            .toDeclStmt(null, [o.StmtModifier.Final]));
+      actionStmts.push(preventDefaultVar
+                       .set(returnValue.notIdentical(o.literal(false)))
+                       .toDeclStmt());
     }
   }
   return new ConvertActionBindingResult(actionStmts, preventDefaultVar);
@@ -702,6 +707,14 @@ function createCurrValueExpr(bindingId: string): o.ReadVarExpr {
 
 function createPreventDefaultVar(bindingId: string): o.ReadVarExpr {
   return o.variable(`pd_${bindingId}`);
+}
+
+function createFinalValueVar(bindingId: string): o.ReadVarExpr {
+  return o.variable(`fv_${bindingId}`);
+}
+
+function createReturnValVar(bindingId: string): o.ReadVarExpr {
+  return o.variable(`rv_${bindingId}`);
 }
 
 function convertStmtIntoExpression(stmt: o.Statement): o.Expression|null {
